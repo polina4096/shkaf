@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde::Deserialize;
 use smart_default::SmartDefault;
 
@@ -5,6 +7,8 @@ use smart_default::SmartDefault;
 pub struct Manifest {
   #[serde(default)]
   pub template: TemplateInfo,
+  #[serde(default)]
+  pub variables: BTreeMap<String, String>,
   #[serde(default)]
   pub commands: TemplateCommands,
 }

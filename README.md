@@ -26,7 +26,7 @@ Files inside `files/` are rendered using [Handlebars](https://handlebarsjs.com/)
 
 The automatic detection vs manual using a suffix-based system is a trade-off between convenience and control. Usually you'd never need to have a lot of large binary files in templates, so in practice there's never an issue.
 
-### Available variables
+### Built-in variables
 
 | Variable       | Description                                          |
 | -------------- | ---------------------------------------------------- |
@@ -40,6 +40,10 @@ name = "My Template"
 description = "A starter template"
 author = "yourname"
 
+[variables]
+license = "MIT"
+rust_edition = "2024"
+
 [commands]
 pre = [
   "git init",
@@ -49,6 +53,8 @@ post = [
   "cargo fmt",
 ]
 ```
+
+Custom variables defined in `[variables]` are available alongside built-in ones in all template files and commands. The built-in `package_name` takes precedence if a custom variable has the same name.
 
 Pre commands run before files are rendered, post commands run after. Commands are also rendered with Handlebars, so variables can also be used in them.
 

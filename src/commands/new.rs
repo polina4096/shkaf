@@ -34,14 +34,16 @@ pub fn run(template_name: &str, out_str: &str) -> Result<()> {
     hb.set_strict_mode(true);
   });
 
+  // Inject built-in variables.
   let package_name = out_dir.file_name().ok_or_else(|| eyre!("could not determine project name from `{}`", out_str))?;
-  let data = BTreeMap::new().tap_mut(|x| {
-    x.insert("package_name", package_name);
+
+  let manifest = manifest.tap_mut(|manifest| {
+    manifest.variables.insert("package_name".into(), package_name.into());
   });
 
   // Scaffold into the temp dir.
   log::info!("Scaffolding project `{}` from template `{}`...", package_name, manifest.template.name);
-  scaffold(&manifest, &files_dir, &temp_path, &handlebars, &data)?;
+  scaffold(&manifest, &files_dir, &temp_path, &handlebars)?;
 
   // Atomically move temp dir to final output dir.
   let temp_path = temp_dir.keep();
@@ -53,15 +55,9 @@ pub fn run(template_name: &str, out_str: &str) -> Result<()> {
   return Ok(());
 }
 
-fn scaffold(
-  manifest: &Manifest,
-  files_dir: &Utf8Path,
-  output_dir: &Utf8Path,
-  handlebars: &Handlebars,
-  data: &BTreeMap<&str, &str>,
-) -> Result<()> {
+fn scaffold(manifest: &Manifest, files_dir: &Utf8Path, output_dir: &Utf8Path, handlebars: &Handlebars) -> Result<()> {
   // Run pre commands.
-  run_commands(&manifest.commands.pre, handlebars, data, output_dir)?;
+  run_commands(&manifest.commands.pre, handlebars, &manifest.variables, output_dir)?;
 
   // Render template files and directories.
   for entry in WalkDir::new(files_dir.as_std_path()) {
@@ -89,7 +85,7 @@ fn scaffold(
         log::debug!("Rendering file `{}`", relative_path);
 
         let rendered = handlebars
-          .render_template(content, data)
+          .render_template(content, &manifest.variables)
           .wrap_err_with(|| format!("failed to render template file: `{}`", relative_path))?;
 
         fs_err::write(&dest, rendered)?;
@@ -104,7 +100,7 @@ fn scaffold(
   }
 
   // Run post commands.
-  run_commands(&manifest.commands.post, handlebars, data, output_dir)?;
+  run_commands(&manifest.commands.post, handlebars, &manifest.variables, output_dir)?;
 
   return Ok(());
 }
@@ -112,7 +108,7 @@ fn scaffold(
 fn run_commands(
   commands: &[String],
   handlebars: &Handlebars,
-  data: &BTreeMap<&str, &str>,
+  data: &BTreeMap<String, String>,
   cwd: &Utf8Path,
 ) -> Result<()> {
   for cmd in commands {
@@ -192,9 +188,9 @@ fn load_template(template_id: &str) -> Result<(Manifest, Utf8PathBuf)> {
   }
 
   // Guard against path traversal (e.g. `../../etc`).
-  let canonical_templates = TEMPLATES_DIR.canonicalize_utf8()
-    .wrap_err("failed to resolve templates directory")?;
-  let canonical = template_dir.canonicalize_utf8()
+  let canonical_templates = TEMPLATES_DIR.canonicalize_utf8().wrap_err("failed to resolve templates directory")?;
+  let canonical = template_dir
+    .canonicalize_utf8()
     .wrap_err_with(|| format!("failed to resolve template path `{}`", template_dir))?;
 
   if !canonical.starts_with(&canonical_templates) {
