@@ -2,6 +2,12 @@
 
 Rust tool to scaffold any projects from templates.
 
+## Installation
+
+```sh
+cargo install --git https://github.com/polina4096/shkaf
+```
+
 ## Usage
 
 ```sh
