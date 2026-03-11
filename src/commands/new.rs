@@ -42,15 +42,15 @@ pub fn run(template_name: &str, out_str: &str) -> Result<()> {
   });
 
   // Scaffold into the temp dir.
-  log::info!("Scaffolding project `{}` from template `{}`...", package_name, manifest.template.name);
+  log::info!("{} project `{}` from template `{}`...", "Scaffolding".cyan(), package_name.bold(), manifest.template.name.bold());
   scaffold(&manifest, &files_dir, &temp_path, &handlebars)?;
 
   // Atomically move temp dir to final output dir.
   let temp_path = temp_dir.keep();
-  fs_err::rename(&temp_path, out_dir) //
+  fs_err::rename(&temp_path, &out_dir) //
     .wrap_err("failed to move scaffolded project to output directory")?;
 
-  log::info!("Done! Project scaffolded at `{}`.", out_dir);
+  log::info!("{} Project scaffolded at `{}`.", "Done!".green().bold(), out_dir.bold());
 
   return Ok(());
 }
@@ -82,7 +82,7 @@ fn scaffold(manifest: &Manifest, files_dir: &Utf8Path, output_dir: &Utf8Path, ha
 
     match std::str::from_utf8(&bytes) {
       Ok(content) => {
-        log::debug!("Rendering file `{}`", relative_path);
+        log::debug!("{} file `{}`", "Rendering".cyan(), relative_path.bold());
 
         let rendered = handlebars
           .render_template(content, &manifest.variables)
@@ -92,7 +92,7 @@ fn scaffold(manifest: &Manifest, files_dir: &Utf8Path, output_dir: &Utf8Path, ha
       }
 
       Err(_) => {
-        log::debug!("Copying binary file `{}`", relative_path);
+        log::debug!("{} binary file `{}`", "Copying".cyan(), relative_path.bold());
 
         fs_err::write(&dest, &bytes)?;
       }
@@ -212,7 +212,7 @@ fn load_template(template_id: &str) -> Result<(Manifest, Utf8PathBuf)> {
   }
 
   // Parse the template manifest.
-  log::debug!("Loading manifest from `{}`", manifest_path);
+  log::debug!("{} manifest from `{}`", "Loading".cyan(), manifest_path.bold());
 
   let manifest = fs_err::read_to_string(&manifest_path)?;
   let manifest: Manifest = toml::from_str(&manifest) //

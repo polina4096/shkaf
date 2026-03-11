@@ -9,7 +9,7 @@ pub fn run() -> Result<()> {
 
   // Check if templates directory exists.
   if !templates_path.exists() {
-    log::info!("No templates found. Create templates in `{}`", templates_path);
+    log::info!("{} Create templates in `{}`", "No templates found.".yellow(), templates_path.bold());
 
     return Ok(());
   }
@@ -18,7 +18,7 @@ pub fn run() -> Result<()> {
 
   // Check if there are no templates.
   if templates.is_empty() {
-    log::info!("No templates found. Create templates in `{}`", templates_path);
+    log::info!("{} Create templates in `{}`", "No templates found.".yellow(), templates_path.bold());
 
     return Ok(());
   }
