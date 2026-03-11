@@ -23,7 +23,7 @@ pub fn run(template_name: &str, out_str: &str) -> Result<()> {
 
   // Check that the output directory does not already exist.
   if out_dir.exists() {
-    bail!("directory `{}` already exists", out_dir);
+    bail!("directory `{out_dir}` already exists");
   }
 
   // Create a temp dir on the same filesystem as output.
@@ -35,14 +35,14 @@ pub fn run(template_name: &str, out_str: &str) -> Result<()> {
   });
 
   // Inject built-in variables.
-  let package_name = out_dir.file_name().ok_or_else(|| eyre!("could not determine project name from `{}`", out_str))?;
+  let package_name = out_dir.file_name().ok_or_else(|| eyre!("could not determine project name from `{out_str}`"))?;
 
   let manifest = manifest.tap_mut(|manifest| {
     manifest.variables.insert("package_name".into(), package_name.into());
   });
 
   // Scaffold into the temp dir.
-  log::info!("{} project `{}` from template `{}`...", "Scaffolding".cyan(), package_name.bold(), manifest.template.name.bold());
+  log::info!("{}", format_args!("Scaffolding project `{package_name}` from template `{}`...", manifest.template.name).cyan());
   scaffold(&manifest, &files_dir, &temp_path, &handlebars)?;
 
   // Atomically move temp dir to final output dir.
@@ -50,7 +50,7 @@ pub fn run(template_name: &str, out_str: &str) -> Result<()> {
   fs_err::rename(&temp_path, &out_dir) //
     .wrap_err("failed to move scaffolded project to output directory")?;
 
-  log::info!("{} Project scaffolded at `{}`.", "Done!".green().bold(), out_dir.bold());
+  log::info!("{}", format_args!("Done! Project scaffolded at `{out_dir}`.").green().bold());
 
   return Ok(());
 }
@@ -82,17 +82,17 @@ fn scaffold(manifest: &Manifest, files_dir: &Utf8Path, output_dir: &Utf8Path, ha
 
     match std::str::from_utf8(&bytes) {
       Ok(content) => {
-        log::debug!("{} file `{}`", "Rendering".cyan(), relative_path.bold());
+        log::debug!("{}", format_args!("Rendering file `{relative_path}`").cyan());
 
         let rendered = handlebars
           .render_template(content, &manifest.variables)
-          .wrap_err_with(|| format!("failed to render template file: `{}`", relative_path))?;
+          .wrap_err_with(|| format!("failed to render template file: `{relative_path}`"))?;
 
         fs_err::write(&dest, rendered)?;
       }
 
       Err(_) => {
-        log::debug!("{} binary file `{}`", "Copying".cyan(), relative_path.bold());
+        log::debug!("{}", format_args!("Copying binary file `{relative_path}`").cyan());
 
         fs_err::write(&dest, &bytes)?;
       }
@@ -114,7 +114,7 @@ fn run_commands(
   for cmd in commands {
     let rendered = handlebars
       .render_template(cmd, data) //
-      .wrap_err_with(|| format!("failed to render command: `{}`", cmd))?;
+      .wrap_err_with(|| format!("failed to render command: `{cmd}`"))?;
 
     log::info!("{} {}", "$".dimmed(), rendered.bold());
 
@@ -127,17 +127,17 @@ fn run_commands(
       .stdout(if quiet { Stdio::null() } else { Stdio::piped() })
       .stderr(if quiet { Stdio::null() } else { Stdio::piped() })
       .spawn()
-      .wrap_err_with(|| format!("failed to execute command: `{}`", rendered))?;
+      .wrap_err_with(|| format!("failed to execute command: `{rendered}`"))?;
 
     if !quiet {
-      let prefix = format!("{}", "  │ ".dimmed());
+      let prefix = "  │ ".dimmed().to_string();
 
       // Stream stderr in a separate thread.
       let stderr = child.stderr.take().expect("captured stderr");
       let prefix_clone = prefix.clone();
       let stderr_thread = std::thread::spawn(move || {
         for line in BufReader::new(stderr).lines().map_while(Result::ok) {
-          eprintln!("{}{}", prefix_clone, line);
+          eprintln!("{prefix_clone}{line}");
         }
       });
 
@@ -145,16 +145,16 @@ fn run_commands(
       let stdout = child.stdout.take().expect("captured stdout");
       for line in BufReader::new(stdout).lines() {
         let line = line.wrap_err("failed to read command output")?;
-        eprintln!("{}{}", prefix, line);
+        eprintln!("{prefix}{line}");
       }
 
       stderr_thread.join().expect("stderr thread panicked");
     }
 
-    let status = child.wait().wrap_err_with(|| format!("failed to wait for command: `{}`", rendered))?;
+    let status = child.wait().wrap_err_with(|| format!("failed to wait for command: `{rendered}`"))?;
 
     if !status.success() {
-      bail!("command `{}` failed with {}", rendered, status);
+      bail!("command `{rendered}` failed with {status}");
     }
   }
 
@@ -180,39 +180,35 @@ fn load_template(template_id: &str) -> Result<(Manifest, Utf8PathBuf)> {
   let template_dir = TEMPLATES_DIR.join(template_id);
 
   if !template_dir.exists() {
-    bail!(
-      "template `{}` not found at `{}`\nRun `shkaf list` to see available templates.",
-      template_id,
-      template_dir
-    );
+    bail!("template `{template_id}` not found at `{template_dir}`\nRun `shkaf list` to see available templates.");
   }
 
   // Guard against path traversal (e.g. `../../etc`).
   let canonical_templates = TEMPLATES_DIR.canonicalize_utf8().wrap_err("failed to resolve templates directory")?;
   let canonical = template_dir
     .canonicalize_utf8()
-    .wrap_err_with(|| format!("failed to resolve template path `{}`", template_dir))?;
+    .wrap_err_with(|| format!("failed to resolve template path `{template_dir}`"))?;
 
   if !canonical.starts_with(&canonical_templates) {
-    bail!("template id `{}` escapes the templates directory", template_id);
+    bail!("template id `{template_id}` escapes the templates directory");
   }
 
   // Check if the template manifest exists.
   let manifest_path = template_dir.join("template.toml");
 
   if !manifest_path.exists() {
-    bail!("template `{}` is missing `template.toml`", template_id);
+    bail!("template `{template_id}` is missing `template.toml`");
   }
 
   // Check if the template files directory exists.
   let files_dir = template_dir.join("files");
 
   if !files_dir.exists() {
-    bail!("template `{}` is missing `files/` directory", template_id);
+    bail!("template `{template_id}` is missing `files/` directory");
   }
 
   // Parse the template manifest.
-  log::debug!("{} manifest from `{}`", "Loading".cyan(), manifest_path.bold());
+  log::debug!("{}", format_args!("Loading manifest from `{manifest_path}`").cyan());
 
   let manifest = fs_err::read_to_string(&manifest_path)?;
   let manifest: Manifest = toml::from_str(&manifest) //

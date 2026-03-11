@@ -9,7 +9,7 @@ pub fn run() -> Result<()> {
 
   // Check if templates directory exists.
   if !templates_path.exists() {
-    log::info!("{} Create templates in `{}`", "No templates found.".yellow(), templates_path.bold());
+    log::info!("{}", format_args!("No templates found. Create templates in `{templates_path}`").yellow());
 
     return Ok(());
   }
@@ -18,7 +18,7 @@ pub fn run() -> Result<()> {
 
   // Check if there are no templates.
   if templates.is_empty() {
-    log::info!("{} Create templates in `{}`", "No templates found.".yellow(), templates_path.bold());
+    log::info!("{}", format_args!("No templates found. Create templates in `{templates_path}`").yellow());
 
     return Ok(());
   }
@@ -46,7 +46,7 @@ fn collect_templates(templates_path: &Utf8Path) -> Result<Vec<(String, Manifest)
 
         // Skip directories without a manifest file.
         if !manifest_path.exists() {
-          log::trace!("No manifest file found in `{}`", template_dir);
+          log::trace!("No manifest file found in `{template_dir}`");
 
           continue;
         }
@@ -60,12 +60,12 @@ fn collect_templates(templates_path: &Utf8Path) -> Result<Vec<(String, Manifest)
 
       Ok(name) => {
         let path = templates_path.join(&name);
-        log::trace!("Skipping non-directory file `{}`", path);
+        log::trace!("Skipping non-directory file `{path}`");
       }
 
       Err(name) => {
         let path = templates_path.join_os(name);
-        log::trace!("Skipping invalid directory `{:?}`", path);
+        log::trace!("Skipping invalid directory `{path:?}`");
       }
     }
   }
