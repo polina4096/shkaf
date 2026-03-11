@@ -48,6 +48,6 @@ serde = { version = "1.0.228", features = ["derive"] }
 smart-default = "0.7.1"
 whoami = "2.1.1"
 tempfile = "3.26.0"
-toml = "1.0.4"
+toml = "1.0.6"
 walkdir = "2.5.0"
 tap = "1.0.1"

@@ -50,7 +50,7 @@ pub fn run(template_name: &str, out_str: &str) -> Result<()> {
   fs_err::rename(&temp_path, out_dir) //
     .wrap_err("failed to move scaffolded project to output directory")?;
 
-  log::info!("Done!");
+  log::info!("Done! Project scaffolded at `{}`.", out_dir);
 
   return Ok(());
 }
